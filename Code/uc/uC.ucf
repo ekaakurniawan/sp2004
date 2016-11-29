@@ -1,0 +1,52 @@
+#     RISC Processor (D2)    |       I/O Device (DIO2)
+#----------------------------+-----------------------------
+# Signal Name  Pin_A  Pin_B  |   Pin_C  Pin_D  Signal Name
+#----------------------------+-----------------------------
+# Data(0)       41     23   <->   17     11    Data(0)
+# Data(1)       37     24   <->   18     7     Data(1)
+# Data(2)       43     21   <->   19     6     Data(2)
+# Data(3)       42     22   <->   20     5     Data(3)
+# Data(4)       45     19   <->   21     4     Data(4)
+# Data(5)       44     20   <->   22     3     Data(5)
+# Data(6)       47     17   <->   23     2     Data(6)
+# Data(7)       46     18   <->   24     1     Data(7)
+# Data_Add(0)   59     12   <->   30     83    Data_Add(0)
+# Data_Add(1)   62     9    <->   31     81    Data_Add(1)
+# Data_Add(2)   61     10   <->   32     80    Data_Add(2)
+# Data_Add(3)   67     7    <->   33     79    Data_Add(3)
+# RESET	        63     8    <->   34     77    RESET
+# IntACK        69     5    <->   35     75    IntACK
+# Sync	        49     15   <->   25     13    CLK
+# WE	        48     16   <->   26     9     WE
+# IntREQ        58     13   <->   27     76    IntREQ
+#
+# Global Clock (GCLK) pin 80
+#
+# Note: Pin_A : FPGA pin out
+#       Pin_B : D2 A-connector
+#       Pin_C : DIO2 B-connector
+#       Pin_D : CPLD pin out
+#
+# l411v (l411v(at)yahoo(dot)com, www.l411v.com)
+
+NET "Data<0>" LOC = "P41";
+NET "Data<1>" LOC = "P37";
+NET "Data<2>" LOC = "P43";
+NET "Data<3>" LOC = "P42";
+NET "Data<4>" LOC = "P45";
+NET "Data<5>" LOC = "P44";
+NET "Data<6>" LOC = "P47";
+NET "Data<7>" LOC = "P46";
+NET "Data_Add<0>" LOC = "P59";
+NET "data_add<1>" LOC = "P62";
+NET "data_add<2>" LOC = "P61";
+NET "Data_Add<7>" LOC = "P67";
+NET "reset" LOC = "p63";    # 63 or change it to 162 (some errors occur if I \
+                            # pass the RESET through CPLD)
+NET "gclk" LOC = "P80";
+NET "intack" LOC = "P69";
+NET "sync" LOC = "P49";
+NET "MW" LOC = "P48";
+NET "intreq" LOC = "P58";
+
+# EOF-l411v

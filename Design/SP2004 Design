@@ -1,0 +1,973 @@
+SP2004 Design
+=============
+
+Hierarchy :  # RISC
+             |
+             +-> # 1 Processor Architecture
+             |   |
+             |   +-> # 1.1 Operation and Instruction
+             |   |
+             |   +-> # 1.2 Data Type
+             |   |
+             |   +-> # 1.3 Instruction Format
+             |   |
+             |   +-> # 1.4 Register
+             |   |
+             |   +-> # 1.5 Addressing Mode
+             |
+             +-> # 2 Data Path
+             |   |
+             |   +-> # 2.1 Register File
+             |   |   |
+             |   |   +-> # 2.1.1 with flip-flop
+             |   |   |
+             |   |   +-> # 2.1.2 with Dual Port RAM (DP_RAM)
+             |   |
+             |   +-> # 2.2 Function Unit
+             |   |    |
+             |   |    +-> # 2.2.1 ALU (Arithmetic Logic Unit)
+             |   |    |   |
+             |   |    |   +-> # 2.2.1.1 Adder and Subtractor
+             |   |    |   |
+             |   |    |   +-> # 2.2.1.2 Logic Unit
+             |   |    |
+             |   |    +-> # 2.2.2 Shifter
+             |   |    |
+             |   |    +-> # 2.2.3 LUI (Load Upper Immediate)
+             |   |    |
+             |   |    +-> # 2.2.4 XNV and Zero Detect
+             |   |
+             |   +-> # 2.3 Constant Unit
+             |
+             +-> # 3 Control Unit
+             |   |
+             |   +-> # 3.1 Memory Control
+             |   |
+             |   +-> # 3.2 Jump and Branch
+             |   |
+             |   +-> # 3.3 Instruction Decoder
+             |
+             +-> # 4 Pipeline
+             |   |
+             |   +-> # 4.1 Data Hazard
+             |   |
+             |   +-> # 4.2 Control Hazard
+             |
+             +-> # 5 Interrupt
+             |
+             +-> # 6 Combine all design
+
+
+1 Processor Architecture
+========================
+
+    +-----------------------------------------------------------+
+    |                                                Data(31:0) |==>
+ <==| Inst_Add(31:0) +---------+   +----------+  Data_Add(31:0) |==>
+    |                |         |   | Register |       BSel(3:0) |==>
+ ==>| Inst(31:0)     |         |   |   File   |             MW  |-->
+    |                | Control |   +----------+             MR  |-->
+    |                |  Unit   |   +----------+                 |
+    |                |         |   | Function |         IntAck  |-->
+    |                |         |   |   Unit   |         IntReq  |<--
+ -->| CLK            +---------+   +----------+     IntAdd(2:0) |<==
+    |                                                    Reset  |<--
+    +-----------------------------------------------------------+
+               <Figure 1 : RISC Processor Architecture>
+
+Note :  CLK      : Clock
+        Inst_Add : Instruction Address
+        Inst     : Instruction
+        Data_Add : Data Address
+        BSel     : Byte Selector
+        MW       : Memory Write
+        MR       : Memori Read
+        IntAck   : Interrupt Acknowledge
+        IntReq   : Interrupt Request
+        IntAdd   : Interrupt Address
+
+RISC Processor characteristics:
+ - Using Harvard Memory architecture.
+ - 32 registers 32 bits Register File.
+ - 32 bits data bus and 32 bits instruction bus.
+ - 32 bits data address bus and 32 bits instruction address bus.
+ - 13 bits external control bus and 15 bits internal control bus.
+ - 1 Kilo bits internal RAM (Max. 4GB).
+ - 16GB maximum ROM addressing.
+ - Interrupt handling.
+
+
+1.1 Operation and Instruction
+=============================
+
+<Table 1 : Operation and Instruction>
+
+Operation   Instruction                      Mnemonic  OpCode  Operand      Control Word Value       IF
+--------------------------------------------------------------------------------------------------------
+Arithmetic  Addition                         ADD       000000  RD, RA, RB   1.0.111.0.00.0000.0.0.0  R
+            Addition Immediate Sign          ADI       000001  RD, RA, Imm  1.0.111.0.00.0000.1.0.1  I
+            Addition Immediate Unsign        ADIU      000010  RD, RA, Imm  1.0.111.0.00.0000.1.0.0  I
+            Subtraction                      SUB       000011  RD, RA, RB   1.0.111.0.00.0001.0.0.0  R
+            Subtraction Immediate Sign       SBI       000100  RD, RA, Imm  1.0.111.0.00.0001.1.0.1  I
+            Subtraction Immediate Unsign     SBIU      000101  RD, RA, Imm  1.0.111.0.00.0001.1.0.0  I
+Logic       AND                              AND       000110  RD, RA, RB   1.0.111.0.00.0100.0.0.0  R
+            AND Immediate                    ANDI      000111  RD, RA, Imm  1.0.111.0.00.0100.1.0.0  I
+            OR                               OR        001000  RD, RA, RB   1.0.111.0.00.0101.0.0.0  R
+            OR Immediate                     ORI       001001  RD, RA, Imm  1.0.111.0.00.0101.1.0.0  I
+            XOR                              XOR       001010  RD, RA, RB   1.0.111.0.00.0110.0.0.0  R
+            XOR Immediate                    XORI      001011  RD, RA, Imm  1.0.111.0.00.0110.1.0.0  I
+            NOR                              NOR       001100  RD, RA, RB   1.0.111.0.00.0111.0.0.0  R
+            NOR Immediate                    NORI      001101  RD, RA, Imm  1.0.111.0.00.0111.1.0.0  I
+Shift       Shift Logical Right              SLR       001110  RD, RA, Imm  1.0.111.0.00.1000.1.0.0  I
+            Shift Logical Right Variable     SLRV      001111  RD, RA, RB   1.0.111.0.00.1000.0.0.0  R
+            Shift Logical Left               SLL       010000  RD, RA, Imm  1.0.111.0.00.1001.1.0.0  I
+            Shift Logical Left Variable      SLLV      010001  RD, RA, RB   1.0.111.0.00.1001.0.0.0  R
+            Shift Arithmetic Right           SAR       010010  RD, RA, Imm  1.0.111.0.00.1010.1.0.0  I
+            Shift Arithmetic Right Variable  SARV      010011  RD, RA, RB   1.0.111.0.00.1010.0.0.0  R
+Load/Store  Load Upper Immediate             LUI       010100  RD, Imm      1.0.111.0.00.1111.1.0.0  I
+            Load Address                     LA        010101  RD           1.0.111.0.00.0010.0.1.0  R
+            Store Byte                       SB        010110  RA, RB       0.0.111.1.00.0010.0.0.0  R
+            Store Half Word                  SH        010111  RA, RB       0.0.111.1.01.0010.0.0.0  R
+            Store Word                       SW        011000  RA, RB       0.0.111.1.10.0010.0.0.0  R
+            Load Byte                        LB        011001  RD, RA       1.1.111.0.00.0010.0.0.0  R
+            Load Half Word                   LH        011010  RD, RA       1.1.111.0.01.0010.0.0.0  R
+            Load Word                        LW        011011  RD, RA       1.1.111.0.10.0010.0.0.0  R
+Set         Set if Less Then                 SLT       011100  RD, RA, RB   1.0.111.0.00.1101.0.0.0  R
+            Set if Less Then Immediate Sign  SLTI      011101  RD, RA, Imm  1.0.111.0.00.1101.1.0.1  I
+Interrupt   Disable Interrupt                DI        011110  --           0.0.111.0.00.0010.0.0.0  -
+            Enable Interrupt                 EI        011111  --           0.0.111.0.00.0010.0.0.0  -
+Branch      Branch if Equal                  BE        100000  RA, RB, Imm  0.0.010.0.00.0001.0.0.0  B
+            Branch if Higher                 BH        100001  RA, RB, Imm  0.0.000.0.00.0001.0.0.0  B
+            Branch if Higher Equal           BHE       100010  RA, RB, Imm  0.0.001.0.00.0001.0.0.0  B
+            Branch if Greater                BG        100011  RA, RB, Imm  0.0.011.0.00.0001.0.0.0  B
+            Branch if Greater Equal          BGE       100100  RA, RB, Imm  0.0.100.0.00.0001.0.0.0  B
+            Jump                             JMP       100101  Target       0.0.101.0.00.0010.0.0.0  J
+            Jump and Link                    JL        100110  Target       1.0.101.0.00.0010.0.1.0  J
+            Jump Register                    JR        100111  RB           0.0.110.0.00.0010.0.0.0  R
+            Jump Register and Link           JRL       101000  RB           1.0.110.0.00.0010.0.1.0  R
+
+Note : IF = Instruction Format
+
+
+1.2 Data Type
+=============
+
+Data Type:
+ - 32 bits address.
+ - 8 bits ASCII character.
+ - 16 bits sign and unsign integer.
+ - 32 bits sign and unsign integer.
+
+
+1.3 Instruction Format
+======================
+
+32 bits instruction long (1 word). Instruction format types:
+ - Register Type.
+ - Immediate Type.
+ - Branch Type.
+ - Jump Type.
+
+Long of each field define by:
+ - 3 addressing modes (Register, Immediate, PC-Relative).
+ - 41 instructions : minimal 6 bits OpCode.
+ - Instruction with 3 operands.
+ - 32 registers : minimal 5 bits register pointer.
+ - Address target for branch and jump instruction type.
+
+Field size for each instruction format:
+ - Register Type
+               6           5         5          5                11
+        +------------+----------+----------+----------+----------------------+
+        |     OP     |    DR    |    SA    |    SB    |                      |
+        |  Operation |   Dest.  |  Source  |  Source  |        Unused        |
+        |    Code    | Register |Register A|Register B|                      |
+        +------------+----------+----------+----------+----------------------+
+
+ - Immediate Type
+               6           5         5                     16
+        +------------+----------+----------+---------------------------------+
+        |     OP     |    DR    |    SA    |               Imm               |
+        |  Operation |   Dest.  |  Source  |            Immediate            |
+        |    Code    | Register |Register A|                                 |
+        +------------+----------+----------+---------------------------------+
+
+ - Branch Type
+               6           5         5          5                11
+        +------------+----------+----------+----------+----------------------+
+        |     OP     |  Target  |    SA    |    SB    |        Target        |
+        |  Operation | Address  |  Source  |  Source  |        Address       |
+        |    Code    |          |Register A|Register B|                      |
+        +------------+----------+----------+----------+----------------------+
+
+ - Jump Type
+               6                                26
+        +------------+-------------------------------------------------------+
+        |     OP     |                                                       |
+        |  Operation |                    Target Address                     |
+        |    Code    |                                                       |
+        +------------+-------------------------------------------------------+
+
+Note :  - OP : 6 bits Operation Code
+        - DR : 5 bits Destination Register
+        - SA : 5 bits Source Register A
+        - SB : 5 bits Source Register B
+        - Imm : 16 bits Immediate
+        - Target : 16 bits Target Address for Branch Type
+                   26 bits Target Address for Jump Type
+
+
+1.4 Register
+============
+
+Kind of register:
+ - General Purpose Register (GPR):
+    - R0  : Zero Register (always content zero value).
+    - R29 : Stack Pointer (store stack address).
+    - R30 : Interrupt Return Address (store PC when interrupt occur).
+    - R31 : Return Address (store PC when "Jump and Link" and "Jump and Link
+            Register" instruction occur).
+    - R1-R28 : Free to use.
+ - Program Counter (PC).
+ - Instruction Register (IR).
+ - Zero (Z), Carry (C), Negative (N), and Overflow (V) flag.
+
+
+1.5 Addressing Mode
+===================
+
+Kind of addressing mode:
+ - Register Addressing Mode.
+ - Immediate Addressing Mode.
+ - PC-Relative Addressing Mode.
+
+
+2 Data Path
+===========
+
+Look at RISC Processor schematic for Data Path position.
+
+ +===============+                 +-------------+
+ |               |                 | Instruction |
+ |               V Bus_D           |   Memory    |
+ |       +----------------+        +-------------+
+ |  LD ->|                |               |
+ |  DA =>| 32x32 Register |               / 16
+ |       |     File       |               V
+ |  AA =>|                |<= BA   +-------------+
+ |       |A_data    B_data|        |Constant Unit|<- CS
+ |       +----------------+        +-------------+
+ |  PC_1   |            |                 | Imm
+ |   |     |            |      +==========+
+ |   V     V            V      V
+ | +---------+        +----------+
+ | | 1     0 |        | 0      1 |
+ | |  MUX_A  |<- MA   |   MUX_B  |<- MB
+ | +---------+        +----------+
+ |      | Bus_A            | Bus_B
+ |      |                  o================> JRA
+ |      |                  |
+ |      |                  o================> DataOut
+ |      |                  |
+ |      o===================================> Address
+ |      |                  |
+ |      V                  V
+ |    +----------------------+
+ |    | A                  B |<= FS
+ |    |                      |-> Zero
+ |    |    Function Unit     |-> C
+ |    |                      |-> N
+ |    |          F           |-> V
+ |    +----------------------+
+ |               | F   +====================< DataIn
+ |               |     |
+ |               V     V
+ |             +---------+
+ |             | 0     1 |
+ |             |  MUX_D  |<- MD
+ |             +---------+
+ |                  | Bus_D
+ +==================+
+
+       <Figure 2 : Data Path Schematic>
+
+Note :   =====  : bus
+         -----  : single wire
+         ==<|==  or  ==|>==  or  --<|==  or  ==|>--  : bus tap
+         --o--  : connected
+           |
+
+
+2.1 Register File
+=================
+
+Use Register File with DP_RAM can save CLB (Configurable Logic Block) until
+37% of CLB total then Register File with Flip-flop.
+
+
+2.1.1 Register File with flip-flop
+==================================
+
+This design spend a lot of CLB for its component:
+ - load32 : to select which register to be a write target.
+ - register32x32RE_1 : contain 32 registers 32 bits with reset and active low
+   clock enable (for read-after-write memory system).
+ - MUX32x32 : two multiplexer to select one of 32 registers for operand A and B.
+
+<Figure 3 : Register File with Flip-flop Schematic>
+
+Note : I using high resolution format for some complicated picture.
+
+
+2.1.2 Register File with Dual Port RAM (DP_RAM)
+===============================================
+
+With DP_RAM, the design can save mach CLB. DP_RAM only have one address and
+data bus for store to register (RAM) and one address and data bus for read
+from register. It mean only support two operand type (we need three operand
+type). Duplicate the DP_RAM to get two address and data bus for read from
+register, but connect the two address and data bus for store to register in
+one point to make the content of the two duplicated register have same value.
+
+<Figure 4 : Register File with DP_RAM Schematic>
+
+
+2.2 Function Unit
+=================
+
+FunctionUnit Signal =>    Function      FS      Operation
+                        ------------------------------------------------
+                          Arithmetic   00 00    Adder
+                                       00 01    Subtractor
+                                       00 10    Pass
+                                       00 11    (Unused)
+                          Logic        01 00    AND
+                                       01 01    OR
+                                       01 10    XOR
+                                       01 11    NOR
+                          Shifter      10 00    Logical Shift Right
+                                       10 01    Logical Shift Left
+                                       10 10    Arithmetic Shift Right
+                                       10 11    (Unused)
+                          Set          11 0X    XNV
+                          Load         11 1X    Load Upper Immediate
+
+Note : FS = Function Selector
+
+
+A(31:0) >==============================+
+                                       |
+B(31:0) >=================================o===============================+
+                           FS(0)       |  |                               |
+FS(3:0) >==o             +==|>---+     |  |                               |
+           |    FS(1:0)  | FS(1) |     |  |                               |
+           o==|>=========o==|>------o--------------------------------------------------+
+           |    FS(3:2)  |       |  |  |  |                               |            |
+           +==|>===========================================================================================================+
+                         |       |  |  |  |         logicunit32           |            |                                   |
+                         |       |  |  |  |        +-----------------+    |            |                                   |
+                         +========================>| S(1:0)  Z(31:0) |====|============|==========================+        |
+                                 |  |  |  |        |                 |    |            |                          |  MUX_F V
+                                 |  |  o==|=======>| A(31:0)         |    |            |                          |  +-----------+
+                                 |  |  |  |        |                 |    |            |        MUX_LX            |  |  Sel(1:0) |
+                                 |  |  |  o=======>| B(31:0)         |    |            |       +--------------+   |  |           |
+                                 |  |  |  |        +-----------------+    |            +------>| Sel  Z(31:0) |=====>| D(31:0)   |
+                                 |  |  |  |                               |                    |              |   |  |           |
+                                 |  |  |  |                               |  B(15:0) +-----+   |              |   |  |           |
+                                 |  |  |  |         addsub32              +===|>====>| LUI |==>| B(31:0)      | +===>| C(31:0)   |
+                                 |  |  |  |        +-----------------+       +-----+ +-----+   |              | | |  |           |
+                                 o--|--|--|------->| SubAdd        N |---o-->|     |           |              | | |  |           |
+                                 |  |  |  |        |                 |   |   | XNV |==========>| A(31:0)      | | +=>| B(31:0)   |
+                                 |  o--|--|------->| Pass          V |-o---->|     |           +--------------+ |    |           |
+                                 |  |  |  |        |                 | | |   +-----+                            |    |           |
+                                 |  |  o==|=======>| A(31:0)    Cout |-|---+                                    | +=>| A(31:0)   |
+                                 |  |  |  |        |                 | | | |                                    | |  |           |
+                                 |  |  |  o=======>| B(31:0) G(31:0) |===============o============================+  |   Z(31:0) |==> F(31:0)
+                                 |  |  |  |        +-----------------+ | | |         |                          |    +-----------+
+                                 |  |  |  |         barrelshift32      | | |         |                          |
+                                 |  |  |  |        +-----------------+ | | |         |                          |
+                                 +--|--|--|------->| LR     BS(31:0) |==========================================+
+                                    |  |  |        |                 | | | |         |
+                                    +--|--|------->| AS              | | | |         |   +------------+
+                                       |  |        |                 | | | |         +==>| ZeroDetect |-----------------------------> Z
+                                       +==|=======>| A(31:0)         | | | |             +------------+
+                                          | B(4:0) |                 | | | +--------------------------------------------------------> Cout
+                                          +==|>===>| SH(4:0)         | | |
+                                                   +-----------------+ | +----------------------------------------------------------> N
+                                                                       |
+                                                                       +------------------------------------------------------------> V
+
+                                                <Figure 5 : Function Unit Schematic>
+
+
+2.2.1 ALU (Arithmetic and Logic Unit)
+=====================================
+
+ALU content of Add/Sub, LogicUnit, and ZeroDetect component.
+
+2.2.1.1 Adder and Subtractor
+=============================
+
+ - Adder : In my project, I compare between Ripple Carry Adder, Carry
+   Lookahead Adder, Carry Selector Adder, and Adder 32 bits using Library.
+   Just using library adder 32 bits, it save your time and CLB.
+ - Subtractor : Use two's complement methode.
+   RD <- RA - RB <- RA + (-RB) <- RA + (RB' + 1).
+   Using Cin and XOR to make RB negative.
+
+AddSub Signals =>   Pass    Sub/Add     Operation
+                  ----------------------------------
+                     0         0        Adder
+                     0         1        Subtractor
+                     1         0        Pass
+                     1         1        (Unused)
+
+                                 +-----------+
+  A(31:0) ======================>| A         |
+                                 |         G |===> G(31:0)
+             +-----+             |           |
+     Pass -->|     |   +-----+   |  adder32  |
+             | AND |==>|     |   |           |
+  B(31:0) ==>|     |   |     |   |         N |---> N
+             +-----+   | XOR |==>| B         |
+                       |     |   |         V |---> V
+  Sub/Add --------o--->|     |   |           |
+                  |    +-----+   |      Cout |---> Cout
+                  +------------->| Cin       |
+                                 +-----------+
+
+       <Figure 6 : Adder/Subtractor Schematic>
+
+
+2.2.1.2 Logic Unit
+==================
+
+Four base logic And, OR, XOR, and NOT. Change NOT with NAMD or NOR to get two
+function. NOT A <-> A NAND 1 <-> A NOR 0.
+
+LogicUnit Signal =>    S    Operation
+                     ------------------
+                       00     AND
+                       01     OR
+                       10     XOR
+                       11     NOR
+
+
+2.2.2 Shifter
+=============
+
+Using Barrel Shifter, its like Binary Search Tree with 2 selector (4
+successor). Using 2 or 1 selector not change the CLB or TPD (Time Propagation
+Delay).
+
+Left/Right'  0      SH
+    |        |       |
+    |        |       / 5
+    |        |       |
+    |        V       V
+    |  +-------------------+
+    |  |   Selective 2's   |
+    +->|S   Complement     |
+       |                   |                                  0 || A
+       +-------------------+                                     |
+         |       |       |                                       / 64
+         / 2     / 2     / 2                                     V
+         |       |       |     +-------------------------------------------------------------------+
+         +=======|=======|====>|     ! 47 4-to-1 multiplexer (rotate right 0,16,32,or 48bit potion)|
+                 |       |     +-------------------------------------------------------------------+
+                 |       |           !                           |
+                 |       |           !                           / 47
+                 |       |           !                           V
+                 |       |        +----------------------------------------------------------------+
+                 +=======|=======>|  !  35 4-to-1 multiplexer(rotate right 0,4,8,or 16 bit potion) |
+                         |        +----------------------------------------------------------------+
+                         |           !                           |
+                         |           !                           / 35
+                         |           !                           V
+                         |           +-------------------------------------------------------------+
+                         +==========>|  32 4-to-1 multiplexer(rotate right 0,1,2,or 3 bit potion)  |
+                                     +-------------------------------------------------------------+
+                                                                 |
+                                                                 / 32
+                                                                 V
+                                                                 G
+
+                              <Figure 7 : Barrel Shifter Schematic>
+
+
+2.2.3 LUI (Load Upper Immediate)
+================================
+
+16 bit immediate always load to LSB (Least Significant Bit). LUI load it to
+MSB (Most Significant Bit).
+
+                 LUI(31:16)
+  Imm(15:0) >==<|============o====> LUI(31:0)
+                             |
+                 LUI(15:0)   |
+          0 >==<|============+
+
+         <Figure 8 : LUI Schematic>
+
+
+2.2.4 XNV and Zero Detect
+=========================
+
+ - XNV : XOR between Negative and Overflow. To know the result is negative
+   but not overflow.
+
+          +---+
+    N >-->|   | XNV(0)
+          |XOR|------<|==o===> XNV(31:0)
+    V >-->|   |          |
+          +---+          |
+             XNV(31:1)   |
+    0 >==============<|==+
+
+       <Figure 9 : XNV Schematic>
+
+
+ - Zero Detect : if the result form Adder and Subtractor 32 bits is zero, Zero
+   Flag must be set to 1, otherwise 0. Just NOR all 32 bits result of Function
+   Unit.
+
+
+2.3 Constant Unit
+=================
+
+Instruction only give 16 bits for Immediate and it must convert to 32 bits.
+If CS = '0', the value of immediate is unsign, then set IR(31:16) to zero and
+IR(15:0) content of 16 bits Immediate value. Else (CS = '1') mean the value
+is sign. The IR(15) define the value is negative (if IR(15) = '1') or
+positive (if IR(15) = '0'). To keep the value correct, IR(31) until IR(16)
+must equal to '1' if the value negative, otherwise IR(31:16) must be zero.
+All of the sign converter (CS = '1') mean IR(31) until IR(16) must equal to
+IR(15) (see the AND gate of the schematic below).
+
+Constant Unit Signal =>    CS         Operation
+                         -----------------------------
+                           0     X"0000" || IR(15:0)
+                           1     IR(15) || IR(15:0)
+
+
+                 IR(14:0)               Imm(14:0)
+IR(15:0) >==o==|>===============================<|==o=========> Imm(31:0)
+            |                                       |
+            |    IR(15)                   Imm(15)   |
+            +==|>--o----------------------------<|==o
+                   |  +-----+                       |
+                   +--|     | Imm(16)  Imm(31:16)   |
+                   |  | AND |-------<|==o=======<|==+
+      CS >-----o------|     |           |
+               |   |  +-----+           |
+               |   |    ...             |
+               |   |  +-----+           |
+               |   +--|     | Imm(31)   |
+               |      | AND |-------<|==+
+               +------|     |
+                      +-----+
+
+              <Figure 10 : Constant Unit Schematic>
+
+
+3 Control Unit
+==============
+
+3.1 Memory Control
+==================
+
+This is a simple memory control. MCI (Memory Control In) control the data
+come from memory to processor and MCO (Memory Control Out) control the data
+out from processor to memory. MCI and MCO controlled by 2 bit signal LS
+(Load/Store) and 2 bit signal Address of data (Address(1:0)). LS signal
+control the type of Load and Store operation such as Load/Store Byte, Half
+Word, and Word. Address(1:0) select specific Byte from one word. Its mean one
+address of data can store or load one Byte only, so 32 bit address of data
+can store/load maximum 4GB data, where one address of instruction can load 4
+Byte instruction or maximum 16GB instruction can loaded. See the MCI and MCO
+position at right side of RISC Processor Schematic at execution/EX stage
+(Figure 14).
+
+Loas/Store Type =>    LS    Load Operation        Store Operation
+                    ----------------------------------------------------
+                      00    Load Byte (LB)        Store Byte (SB)
+                      01    Load Half Word (LH)   Store Half Word (SH)
+                      10    Load Word (LW)        Store Word (SW)
+                      11    (Unused)              (Unused)
+
+Bit's Position below mean that only specific memory area can be load or
+store. LB/SB can Load/Store at all byte position, LH/SH can only Load/Store
+at 16 bits LSB or 16 bits MSB, and LW/SW Load/Store all the word at the
+address.
+
+MCO Decoder =>    Add   LS  |  E3   E2   E1   E0    Bit's Position =>   Out3       Out2       Out1       Out0
+                ------------+--------------------                    -------------------------------------------
+                  00    00  |  0    0    0    1                          X          X          X        In(7:0)
+                        01  |  0    0    1    1                          X          X        In(15:8)   In(7:0)
+                        10  |  1    1    1    1                        In(31:24)  In(23:16)  In(15:8)   In(7:0)
+                  01    00  |  0    0    1    0                          X          X        In(7:0)      X
+                  10    00  |  0    1    0    0                          X        In(7:0)      X          X
+                        01  |  1    1    0    0                        In(15:8)   In(7:0)      X          X
+                  11    00  |  1    0    0    0                        In(7:0)      X          X          X
+
+
+In(31:0) >==+ In(7:0)
+            |>==========o====================================> Out0(7:0)
+            | In(15:8)  |
+            |>=============+
+            | In(23:16) |  |
+            |>================+
+            | In(31:24) |  |  |
+            |>===================+
+                        |  |  |  |              +--------+
+ LS(1:0) >======================================|        |---> E0
+                        |  |  |  |              |  MCO   |---> E1
+Add(1:0) >==o=======================o===========|Decoder |---> E2
+            | Add(0)    |  |  |  |  |           |        |---> E3
+            |>-------------------------+        +--------+
+            | Add(1)    |  |  |  |  |  |
+            |>----------------------------+
+                        |  |  |  |  |  |  |     +--------+
+                        |  |  |  |  |  +------->| Sel    |===> Out1(7:0)
+                        |  |  |  |  |     |     |        |
+                        |  o===================>| 0      |
+                        |  |  |  |  |     |     |        |
+                        o======================>| 1      |
+                        |  |  |  |  |     |     +--------+
+                        |  |  |  |  |     |     +--------+
+                        |  |  |  |  |     +---->| Sel    |===> Out2(7:0)
+                        |  |  |  |  |           |        |
+                        |  |  +================>| 0      |
+                        |  |     |  |           |        |
+                        o======================>| 1      |
+                        |  |     |  |           +--------+
+                        |  |     |  |           +--------+
+                        |  |     |  +==========>| Sel    |===> Out3(7:0)
+                        |  |     |              |        |
+                        |  |     +========o====>| 0      |
+                        |  |              |     |        |
+                        |  |              +====>| 1      |
+                        |  |                    |        |
+                        |  +===================>| 2      |
+                        |                       |        |
+                        +======================>| 3      |
+                                                +--------+
+
+                      <Figure 11 : MCO Schematic>
+
+
+MCI Decoder =>    Add   LS  |  E3   E2   E1   E0    Bit's Position =>   Out3       Out2       Out1       Out0
+                ------------+--------------------                    -------------------------------------------
+                  00    00  |  0    0    0    1                          0          0          0        In(7:0)
+                        01  |  0    0    1    1                          0          0        In(15:8)   In(7:0)
+                        10  |  1    1    1    1                        In(31:24)  In(23:16)  In(15:8)   In(7:0)
+                  01    00  |  0    0    0    1                          0          0          0        In(15:8)
+                  10    00  |  0    0    0    1                          0          0          0        In(23:16)
+                        01  |  0    0    1    1                          0          0        In(31:24)  In(23:16)
+                  11    00  |  0    0    0    1                          0          0          0        In(31:24)
+
+
+                                             +---------+
+ LS(1:0) >===================================|        3|-+
+                                             |  MCI   2|----+
+Add(1:0) >==========================o========|Decoder 1|-------+
+                                    |        |        0|----------+
+In(31:0) >==+ In(7:0)               | Add(1) +---------+ |  |  |  |
+            |>==========+           |>--+                |  |  |  |
+            | In(15:8)  |           |   |                |  |  |  |
+            |>=============+        |   |                |  |  |  |
+            | In(23:16) |  |        |   |                |  |  |  |
+            |>================+     |   |                |  |  |  |
+            | In(31:24) |  |  |     |   |                |  |  |  |
+            |>===================+  |   |                |  |  |  |  +---+Out(7:0)
+                        |  |  |  |  |   |     +--------+ |  |  |  +->|AND|==========<|===> Out(31:0)
+                        |  |  |  |  +========>| Sel    |============>|   |           |
+                        |  |  |  |      |     |        | |  |  |     +---+           |
+                        +====================>| 0      | |  |  |                     |
+                           |  |  |      |     |        | |  |  |                     |
+                           o=================>| 1      | |  |  |                     |
+                           |  |  |      |     |        | |  |  |                     |
+                           |  o==============>| 2      | |  |  |                     |
+                           |  |  |      |     |        | |  |  |                     |
+                           |  |  o===========>| 3      | |  |  |                     |
+                           |  |  |      |     +--------+ |  |  |     +---+Out(15:8)  |
+                           |  |  |      |     +--------+ |  |  +---->|AND|==========<|
+                           |  |  |      +---->| Sel    |============>|   |           |
+                           |  |  |            |        | |  |        +---+           |
+                           +=================>| 0      | |  |                        |
+                              |  |            |        | |  |                        |
+                              |  o===========>| 1      | |  |                        |
+                              |  |            +--------+ |  |        +---+Out(23:16) |
+                              |  |                       |  +------->|AND|==========<|
+                              +==========================|==========>|   |           |
+                                 |                       |           +---+           |
+                                 |                       |           +---+Out(31:24) |
+                                 |                       +---------->|AND|==========<|
+                                 +==================================>|   |
+                                                                     +---+
+
+                              <Figure 12 : MCI Schematic>
+
+
+3.2 Jump and Branch
+===================
+
+Jump mean unconditional branch and Branch mean conditional. Jump that used is
+Jump Relative, where new address is result of addition from current address
+(PC) with 26 bits Target (IR(25:0)). Such as Jump, Branch is also relative,
+but its only use 16 bits Target (IR(25:21)||IR(10:0)). Target for Jump or Branch is
+sign, its mean it can branch up or down. Such as Constant Unit, we must
+convert 16 and 26 bits Target to 32 bits. For 16 bits Target, just duplicate
+16 bits MSB with bit 15 (IR(25)). For 26 bits Target, just duplicate 6 bits
+MSB with bit 25 (IR(25)). See the schematic at left side of RISC Processor
+Schematic at execution/EX stage (Figure 14).
+
+Use multiplexer (named MUX_C) to select between next instruction, branch
+instruction, jump instruction using JA, or jump instruction that next address
+get from specific register (JRA / Jump Register Address). JRA come from Bus_B
+(see Data Path/Figure 2), so put the register number that you want to pointed
+at SB field.
+
+MUX_C Signal =>     MC    Operation
+                  -------------------
+                    00    PC <- PC + 1
+                    01    PC <- BrA
+                    10    PC <- JA
+                    11    PC <- JRA
+
+Note :  PC  = Program Counter
+        BrA = Branch Address (come form 16 bits Target)
+        JA  = Jump Address (come from 26 bits Target)
+        JRA = Jump Register Address (come form Bus_B)
+
+Because Branch is conditional, we list all condition using BS (Branch
+Selector) signal and add next instruction and two kind Jump together. Branch
+Control use BS and four flag (Zero, Carry, Negative, and Overflow) as input.
+Branch Control validate the condition and result the next address with MC
+signal as the output.
+
+Branch Control Signals =>
+
+Instruction Name         BS     Flag               MC    Operation
+-----------------------------------------------------------------------------------
+Branch if Higher         000    C=1 AND ZERO=0     01    PC <- PC+Target(16) <- BrA
+                                C=0 OR  ZERO=1     00    PC <- PC+1
+Branch if Higher Equal   001    C=1                01    PC <- PC+Target(16) <- BrA
+                                C=0                00    PC <- PC+1
+Branch if Equal          010    ZERO=1             01    PC <- PC+Target(16) <- BrA
+                                ZERO=0             00    PC <- PC+1
+Branch if Greater        011    XNV=0 AMD ZERO=0   01    PC <- PC+Target(16) <- BrA
+                                XNV=1 OR  ZERO=1   00    PC <- PC+1
+Branch if Greater Equal  100    XNV=0              01    PC <- PC+Target(16) <- BrA
+                                XNV=1              00    PC <- PC+1
+Jump                     101    ---                10    PC <- PC+Target(26) <- JA
+Jump Register            110    ---                11    PC <- RB <- JRA
+Next Instruction         111    ---                00    PC <- PC+1
+
+
+3.3 Instruction Decoder
+=======================
+
+There is bit position for 15 bits internal control signal.
+
+   LD   MD       BS       MW     LS           FS         MB   MA   CS
+ |----|----|------------|----|--------|----------------|----|----|----|
+   14   13   12  11  10   09   08  07   06  05  04  03   02   01   00
+
+There is function of 15 bits internal control signal.
+
+Signal                Code    Function
+-----------------------------------------------
+Load (LD)             0       Not Write to Register File
+                      1       Write to Register File
+Multiplexer D (MD)    0       Function Unit
+                      1       Data Memory
+Branch Select (BS)    000     Branch if Higher
+                      001     Branch if Higher Equal
+                      010     Branch if Equal
+                      011     Branch if Greater
+                      100     Branch if Greater Equal
+                      101     Jump
+                      110     Jump Register
+                      111     Next Instruction
+Memory Write (MW)     0       Not Write to Data Memory
+                      1       Write to Data Memory
+Load/Store (LS)       00      Load/Store Byte
+                      01      Load/Store Half Word
+                      10      Load/Store Word
+                      11      (unused)
+Function Select (FS)  0000    Addition
+                      0001    Subtraction
+                      0010    Pass
+                      0011    (unused)
+                      0100    AND
+                      0101    OR
+                      0110    XOR
+                      0111    NOT
+                      1000    Shift Logical Right
+                      1001    Shift Logical Left
+                      1010    Shift Arithmetic Right
+                      1011    (unused)
+                      1100    (unused)
+                      1101    Set
+                      1110    (unused)
+                      1111    LUI
+Multiplexer B (MB)    0       Register File
+                      1       Immediate
+Multiplexer A (MA)    0       Register File
+                      1       PC
+Constant Select (CS)  0       Unsign
+                      1       Sign
+
+For complete Mnemonic/Opcode, Operand, and Control Word Value for each
+instruction, see Table 1 at sub section 1.1 Operation and Instruction.
+
+
+4 Pipeline
+==========
+
+Each instruction divide in 4 pipeline stage (instruction fetch/IF,
+instruction decode and operand fetch/DO, execution/EX, and write back/WB).
+
+Instruction Operation for every pipeline stage.
+
++------+----------------------------------------------------------------------------------------------------------+
+|      |                                              Instruction Type                                            |
+|      +-----------------+-----------------+-----------------+-----------------+------------------+---------------+
+| Step |  Register Type  |  Immediate Type |      Load       |      Store      |    Branch Type   |   Jump Type   |
++======+=================+=================+=================+=================+==================+===============+
+|  IF  |                                             IR <- InstMem[PC]                                            |
+|      |                                               PC <- PC + 1                                               |
++------+-----------------+-----------------+-----------------+-----------------+------------------+---------------+
+|  DO  |      SA <-      |      SA <-      |      SA <-      |      SA <-      |  JA_R <- se ||   | JA_R <- se || |
+|      | Reg[IR(20:16)]; | Reg[IR(20:16)]; | Reg[IR(20:16)]; | Reg[IR(20:16)]; |  IR(25:21) ||    |   IR(25:0);   |
+|      |      SB <-      |  Imm <- se ||   |                 |      SB <-      |   IR(10:0);      |               |
+|      | Reg[IR(15:11)]; |    IR(15:0);    |                 | Reg[IR(15:11)]; |                  |               |
++------+-----------------+-----------------+-----------------+-----------------+------------------+---------------+
+|  EX  |      DR <-      |       DR <-     |      DR <-      |   DataMem[SA]   |  If(TRUE) then   |  PC <- PC_2   |
+|      |    SA op SB;    |   SA op Imm;    |   DataMem[SA];  |     <- SB;      |PC <- PC_2 + JA_R;|   + JA_R;     |
++------+-----------------+-----------------+-----------------+-----------------+------------------+---------------+
+|  WB  |                Reg[IR(25:21)] <- DR;                |////////////////////////////////////////////////////|
++------+-----------------------------------------------------+----------------------------------------------------+
+
+Note :  IF      : Instruction Fetch
+        DO      : Instruction Decoder and Operand Fetch
+        EX      : Execution
+        WB      : Write Back
+        PC      : Program Counter
+        IR      : Instruction Register
+        SA      : Register Source A
+        SB      : Register Source B
+        DR      : Destination Register
+        Reg     : Register
+        Imm     : Immediate
+        InstMem : Instruction Memory
+        DataMem : Data Memory
+        JA_R    : Jump Address Register
+        se      : Sign Extension
+        op      : Operator Arithmetic(+,-), Logic(AND,OR,XOR,NOR), and Shift(sll,slr,sar)
+
+
+4.1 Data Hazard
+===============
+
+Data Hazard that appear is Data Dependency (an instruction depends on the
+result of a previous instruction). Data Dependency (DD) appear if:
+  HA = (AA_DO == DA_EX) . LD_EX . (DA_EX != 00000) . MA_DO'
+  HB = (BA_DO == DA_EX) . LD_EX . (DA_EX != 00000) . MB_DO'
+  DD = HA + HB
+HA and HB generated by Data Dependency Detector (see Figure 14).
+
+The solution is using Data Forwarding. Pass F (Function Unit result) and Data
+from Memory before register (between EX and WB) to MUX_D_DF (new MUX_D
+special for Data Forwarding), and then pass it to MUX_A and MUX_B as an input.
+Operand Fetch can get the result of Execution without spend a clock.
+
+
+4.2 Control Hazard
+==================
+
+In pipeline, instruction fetch and decode in a same time with instruction
+execution without know what instruction that executed. If the instruction
+that executed is a branch or jump instruction, don't fetch and decode the
+next instruction but the instruction that must be fetch is a target
+instruction. This situation called Control Hazard, this dangerous because can
+change the meaning of your program with execute instruction that should not
+be executed.
+
+The solution, I use Branch Prediction (give NOP/No Operation in Hardware). We
+know the instruction that will executed is Branch or Jump instruction from MC.
+If one of two bits of MC content bit 1, its mean Branch or Jump instruction
+occur. Then, we must set to zero all instruction from Instruction Memory (IF
+stage) and make sure all internal control word at DO stage not change content
+of memory (MW=0) or register (LD=0) and not change instruction flow (BS=111).
+
+
+5 Interrupt
+===========
+
+Interrupt is designed without nested. Interrupt is accept if:
+ - Interrupt request occur.
+ - Interrupt is Enable (using Enable Interrupt (EI) and Disable Interrupt
+   (DI)).
+ - IF stage is not fetching Branch/Jump instruction or Interrupt instruction
+   (EI/DI).
+ - DO stage is not decoding Branch/Jump instruction.
+ - EX stage is not executing Branch/Jump instruction.
+ - EX stage is not read/write from/to memory or external device. Interrupt
+   use Data Address as it's interrupt address to specify the specific device
+   that doing interrupt request.
+
+              +---------------------------+
+              |   +-----+          D-FF   |
+   E_Int_Next +-->|0    |         +----+  |                          +-----+
+                  | MUX |-------->|D  Q|--o------------------------->|     |
+   Inst(26) ----->|1    |         |    |  +------------------------->|     |
+                  +-----+      +-o|>   |  |+------------------------>|     |
+                     ^ IntSel  |  +----+  ||     +------------------>| AND |--> Int
+                     |         |          ||     |        +--------->|     |
+               +-----------+   |          ||     |        |     +--->|     |
+               | Enable/   |   |          || +-------++-------+ |+-->|     |
+Inst(31:26) ==>| Disable   |   |          || | BS_In ||  BS   | ||+->|     |
+               | Interrupt |   |          || |Decoder||Decoder| |||  +-----+
+               | Decoder   |   |          || +-------++-------+ |||
+               +-----------+   |          ||     |        |     |||
+        CLK -------------------+          ||     |        |     |||
+     IntREQ ------------------------------+|     |        |     |||
+  Inst(31)' -------------------------------+     |        |     |||
+      BS_In =====================================+        |     |||
+         BS ==============================================+     |||
+        MW' ----------------------------------------------------+||
+        MR' -----------------------------------------------------+|
+    IntSel' ------------------------------------------------------+
+
+                 <Figure 13 : Interrupt Control Schematic>
+
+
+Interrupt Control component do this validation. If the interrupt permitted,
+Interrupt Control send a Interrupt Acknowledge signal and processor do:
+ - Send Interrupt Acknowledge to device that request the interrupt.
+ - PC contented by Interrupt Address (IntAdd). Each device have its specific
+   IntAdd. Shift the IntAdd by one to left or multiplied with two because we
+   must insert DI instruction before jump instruction to the specific program
+   for each interrupt request. The reason of DI instruction before jump is to
+   avoid interrupt nested. To select between IntAdd or next PC to be a new
+   PC, we use MUX_I_PC multiplexer control by Interrupt Acknowledge signal.
+ - PC_1 contented by PC, not next PC (PC + 1) because current instruction not
+   fetched yet. We use MUX_I_PC_1 to select between PC and PC + 1.
+ - To save current PC, use LA instruction then store the current PC to
+   register 30 (R30). The instruction code is 57C00000h. Use MUX_IR
+   multiplexer to select between instruction from Instruction Memory or
+   00000000h (for Branch Prediction) or 57C00000h (for Store PC because
+   Interrupt).
+
+
+6 Combine all design
+====================
+
+For more detail, see all combined design.
+
+<Figure 14 : RISC Processor Schematic>
+
+
+by : eka.a.kurniawan(ta)gmail(tod)com

@@ -1,0 +1,105 @@
+#     RISC Processor (D2)    |       I/O Device (DIO2)
+#----------------------------+-----------------------------
+# Signal Name  Pin_A  Pin_B  |   Pin_C  Pin_D  Signal Name
+#----------------------------+-----------------------------
+# Data(0)       41     23   <->   17     11    Data(0)
+# Data(1)       37     24   <->   18     7     Data(1)
+# Data(2)       43     21   <->   19     6     Data(2)
+# Data(3)       42     22   <->   20     5     Data(3)
+# Data(4)       45     19   <->   21     4     Data(4)
+# Data(5)       44     20   <->   22     3     Data(5)
+# Data(6)       47     17   <->   23     2     Data(6)
+# Data(7)       46     18   <->   24     1     Data(7)
+# Data_Add(0)   59     12   <->   30     83    Data_Add(0)
+# Data_Add(1)   62     9    <->   31     81    Data_Add(1)
+# Data_Add(2)   61     10   <->   32     80    Data_Add(2)
+# Data_Add(3)   67     7    <->   33     79    Data_Add(3)
+# RESET	        63     8    <->   34     77    RESET
+# IntACK        69     5    <->   35     75    IntACK
+# Sync	        49     15   <->   25     13    CLK
+# WE	        48     16   <->   26     9     WE
+# IntREQ        58     13   <->   27     76    IntREQ
+#
+# Note: Pin_A : FPGA pin out
+#       Pin_B : D2 A-connector
+#       Pin_C : DIO2 B-connector
+#       Pin_D : CPLD pin out
+#
+# Signal Name   CPLD pin out
+#----------------------------
+# LED(0)	    82
+# LED(1)	    12
+# LED(2)	    14
+# LED(3)	    15
+# LED(4)	    17
+# LED(5)	    18
+# LED(6)	    19
+# LED(7)	    20
+# LED(8)	    62
+# LED(9)	    69
+# LED(10)	    67
+# LED(11)	    68
+# LED(12)	    70
+# LED(13)	    71
+# LED(14)	    72
+# LED(15)	    74
+# Btn0		    84
+# Btn1		    47
+# Btn2		    66
+# Switch(0)	    55
+# Switch(1)	    61
+# Switch(2)	    60
+# Switch(3)	    62
+# Switch(4)	    64
+# Switch(5)	    65
+# Switch(6)	    66
+# Switch(7)	    67
+#
+# l411v (l411v(at)yahoo(dot)com, www.l411v.com)
+
+NET "btn0" LOC = "P84";
+NET "btn1" LOC = "P47";
+NET "btn2" LOC = "P66";
+NET "clk" LOC = "P13";
+NET "data<0>" LOC = "P11";
+NET "data<1>" LOC = "P7";
+NET "data<2>" LOC = "P6";
+NET "data<3>" LOC = "P5";
+NET "data<4>" LOC = "P4";
+NET "data<5>" LOC = "P3";
+NET "data<6>" LOC = "P2";
+NET "data<7>" LOC = "P1";
+NET "data_add<0>" LOC = "P83";
+NET "data_add<1>" LOC = "P81";
+NET "data_add<2>" LOC = "P80";
+NET "data_add<3>" LOC = "P79";
+NET "intreq" LOC = "P76";
+NET "led<0>" LOC = "P82";
+NET "led<1>" LOC = "P12";
+NET "led<2>" LOC = "P14";
+NET "led<3>" LOC = "P15";
+NET "led<4>" LOC = "P17";
+NET "led<5>" LOC = "P18";
+NET "led<6>" LOC = "P19";
+NET "led<7>" LOC = "P20";
+NET "led<8>" LOC = "P63";
+NET "led<9>" LOC = "P69";
+NET "led<10>" LOC = "P67";
+NET "led<11>" LOC = "P68";
+NET "led<12>" LOC = "P70";
+NET "led<13>" LOC = "P71";
+NET "led<14>" LOC = "P72";
+NET "led<15>" LOC = "P74";
+NET "reset" LOC = "P77";
+NET "we" LOC = "P9";
+NET "intack" LOC = "P75";
+NET "switch<0>" LOC = "P34";
+NET "switch<1>" LOC = "P40";
+NET "switch<2>" LOC = "P39";
+NET "switch<3>" LOC = "P41";
+NET "switch<4>" LOC = "P43";
+NET "switch<5>" LOC = "P45";
+NET "switch<6>" LOC = "P44";
+NET "switch<7>" LOC = "P46";
+
+# EOF-l411v
